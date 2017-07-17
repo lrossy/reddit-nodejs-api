@@ -32,10 +32,13 @@ class RedditAPI {
     }
 
     createPost(post) {
+        if(!post.subredditId){
+          return new Error('subredditId property required')
+        }
         return this.conn.query(
             `
             INSERT INTO posts (userId, title, url, createdAt, updatedAt)
-            VALUES (?, ?, ?, NOW(). NOW())`,
+            VALUES (?, ?, ?, NOW(), NOW())`,
             [post.userId, post.title, post.url]
         )
             .then(result => {
@@ -43,6 +46,36 @@ class RedditAPI {
             });
     }
 
+    createSubreddit(subreddit) {
+      return this.conn.query(
+        `
+            INSERT INTO subreddit (name, description, createdAt, updatedAt)
+            VALUES (?, ?, NOW(), NOW())`,
+        [subreddit.name, subreddit.description]
+        )
+        .then(result => {
+          return result.insertId;
+        })
+        .catch(error => {
+          // Special error handling for duplicate entry
+          if (error.code === 'ER_DUP_ENTRY') {
+            throw new Error('A subreddit with this name already exists');
+          }
+          else {
+            throw error;
+          }
+        });
+    }
+
+    getAllSubreddits(){
+      return this.conn.query(
+        `
+            SELECT *
+            FROM subreddit s
+            ORDER BY createdAt DESC
+            LIMIT 25`
+      )
+    }
     getAllPosts() {
         /*
         strings delimited with ` are an ES2015 feature called "template strings".
@@ -55,11 +88,36 @@ class RedditAPI {
          */
         return this.conn.query(
             `
-            SELECT id, title, url, userId, createdAt, updatedAt
-            FROM posts
+            SELECT p.id, title, url, userId, p.createdAt, p.updatedAt,
+             u.id as user_id, u.username as username, u.createdAt as createdAtUser, u.updatedAt as updatedAtUser,
+             s.id as sub_id, s.name as sub_name, s.description as sub_description
+            FROM posts p
+            JOIN users u ON u.id = p.userId
+            JOIN subreddit s ON s.id = p.subredditId
             ORDER BY createdAt DESC
             LIMIT 25`
-        );
+        ).then(result => {
+
+          return result.map(function (post) {
+            return {
+              id: post.id,
+              title: post.title,
+              url: post.url,
+              user: {
+                username: post.username,
+                createdAt: post.createdAtUser,
+                updatedAt: post.updatedAtUser
+              },
+              subreddit: {
+                id: post.sub_id,
+                name: post.sub_name,
+                description: post.sub_description
+              },
+              createdAt: post.createdAt,
+              updatedAt: post.updatedAt
+            }
+          });
+        });
     }
 }
 

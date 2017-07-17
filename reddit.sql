@@ -21,3 +21,26 @@ CREATE TABLE posts (
   KEY userId (userId), -- why did we add this here? ask me :)
   CONSTRAINT validUser FOREIGN KEY (userId) REFERENCES users (id) ON DELETE SET NULL
 );
+
+
+CREATE TABLE subreddit (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(30) DEFAULT NULL,
+  description VARCHAR(200) DEFAULT NULL,
+  createdAt DATETIME NOT NULL,
+  updatedAt DATETIME NOT NULL,
+  UNIQUE KEY name (name),
+);
+
+CREATE TABLE votes (
+  userId INT,
+  postId INT,
+  voteDirection TINYINT,
+  createdAt DATETIME NOT NULL,
+  updatedAt DATETIME NOT NULL,
+  PRIMARY KEY (userId, postId),
+  KEY userId (userId),
+  KEY postId (postId),
+  FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
+  FOREIGN KEY (postId) REFERENCES posts (id) ON DELETE CASCADE
+);
