@@ -33,16 +33,16 @@ class RedditAPI {
 
     createPost(post) {
         if(!post.subredditId){
-          return new Error('subredditId property required')
+          return Promise.reject('subredditId property required')
         }
         return this.conn.query(
             `
-            INSERT INTO posts (userId, title, url, createdAt, updatedAt)
-            VALUES (?, ?, ?, NOW(), NOW())`,
-            [post.userId, post.title, post.url]
+            INSERT INTO posts (userId, title, url, subredditId, createdAt, updatedAt)
+            VALUES (?, ?, ?, ?, NOW(), NOW())`,
+            [post.userId, post.title, post.url, post.subredditId]
         )
             .then(result => {
-                return result.insertId;
+              return result.insertId;
             });
     }
 
@@ -76,6 +76,7 @@ class RedditAPI {
             LIMIT 25`
       )
     }
+
     getAllPosts() {
         /*
         strings delimited with ` are an ES2015 feature called "template strings".
@@ -88,22 +89,26 @@ class RedditAPI {
          */
         return this.conn.query(
             `
-            SELECT p.id, title, url, userId, p.createdAt, p.updatedAt,
-             u.id as user_id, u.username as username, u.createdAt as createdAtUser, u.updatedAt as updatedAtUser,
-             s.id as sub_id, s.name as sub_name, s.description as sub_description
+            SELECT p.id AS postId, title, url, p.userId AS userId, p.createdAt, p.updatedAt,
+             u.id AS user_id, u.username AS username, u.createdAt AS createdAtUser, u.updatedAt AS updatedAtUser,
+             s.id AS sub_id, s.name AS sub_name, s.description AS sub_description
+             , SUM(voteDirection) AS voteScore
             FROM posts p
             JOIN users u ON u.id = p.userId
             JOIN subreddit s ON s.id = p.subredditId
-            ORDER BY createdAt DESC
+            LEFT JOIN votes v ON v.postId = p.id
+            GROUP BY p.id
+            ORDER BY voteScore DESC
             LIMIT 25`
         ).then(result => {
 
           return result.map(function (post) {
             return {
-              id: post.id,
+              id: post.postId,
               title: post.title,
               url: post.url,
               user: {
+                id: post.userId,
                 username: post.username,
                 createdAt: post.createdAtUser,
                 updatedAt: post.updatedAtUser
@@ -113,10 +118,27 @@ class RedditAPI {
                 name: post.sub_name,
                 description: post.sub_description
               },
+              voteScore: post.voteScore,
               createdAt: post.createdAt,
               updatedAt: post.updatedAt
             }
           });
+        });
+    }
+
+    createVote(vote){
+      if(!vote.voteDirection || (vote.voteDirection !== -1 && vote.voteDirection !== 1 && vote.voteDirection !== 0)){
+        return Promise.reject('voteDirection must be -1, 0 or 1')
+      }
+      return this.conn.query(
+        `
+            INSERT INTO votes SET userId=?, postId=?, voteDirection=?
+            ON DUPLICATE KEY UPDATE voteDirection=?`,
+        [vote.userId, vote.postId, vote.voteDirection, vote.voteDirection]
+        )
+        .then(result => {
+          console.log('result', result);
+          return result.insertId;
         });
     }
 }

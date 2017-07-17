@@ -64,3 +64,19 @@ myReddit.getAllPosts()
 //   .catch(error => {
 //     console.error('oh shit, error: ', error.stack);
 //   });
+// myReddit.createPost({
+//     title: 'Hello Reddit! This is my first post',
+//     url: 'http://www.digg.com',
+//     userId: 1,
+//     subredditId: 2
+//   })
+//   .then( result => console.log('result: ', result))
+//   .catch( e => console.log('Error:', e.code));
+//
+//
+// myReddit.createVote({
+//   postId: 1,
+//   userId: 1,
+//   voteDirection: 1
+// }).then( result => console.log('result: ', result))
+// .catch( e => console.log('Error:', e));

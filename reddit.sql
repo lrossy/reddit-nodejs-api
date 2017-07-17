@@ -22,6 +22,7 @@ CREATE TABLE posts (
   CONSTRAINT validUser FOREIGN KEY (userId) REFERENCES users (id) ON DELETE SET NULL
 );
 
+ALTER TABLE `reddit`.`posts` ADD COLUMN `subredditId` INT(11) NOT NULL AFTER `updatedAt`;
 
 CREATE TABLE subreddit (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -31,6 +32,8 @@ CREATE TABLE subreddit (
   updatedAt DATETIME NOT NULL,
   UNIQUE KEY name (name),
 );
+
+ALTER TABLE `reddit`.posts ADD CONSTRAINT `validSubreddit` FOREIGN KEY (`subredditId`) REFERENCES `reddit`.subreddit(`id`);
 
 CREATE TABLE votes (
   userId INT,
@@ -44,3 +47,6 @@ CREATE TABLE votes (
   FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
   FOREIGN KEY (postId) REFERENCES posts (id) ON DELETE CASCADE
 );
+
+LTER TABLE `reddit`.`votes` CHANGE `createdAt` `createdAt` DATETIME DEFAULT NOW() NOT NULL, CHANGE `updatedAt` `updatedAt` DATETIME DEFAULT NOW() NOT NULL;
+
