@@ -91,10 +91,16 @@ var myReddit = new RedditAPI(connection);
 //   .catch(error => {
 //     console.error('oh shit, error: ', error);
 //   });
+// console.log('myReddit.getCommentsForPost(1, 3)',myReddit.getCommentsForPost(1, 3));
+// myReddit.getCommentsForPost(1, 3)
+//   .then( result => {
+//     console.log('result: ', result[0].replies);
+//   })
+//   .catch(error => {
+//     console.error('oh shit, error: ', error);
+//   });
 
-
-myReddit.getCommentsForPost(1, 2)
-  .then( result => console.log('result: ', result))
-  .catch(error => {
-    console.error('oh shit, error: ', error);
-  });
+myReddit.getCommentsForPost(1, function(err, response){
+  console.log('err', err)
+  console.log('response', JSON.stringify(response, undefined, 2))
+})

@@ -159,7 +159,53 @@ class RedditAPI {
       });
   }
 
-  getCommentsForPost(postId, maxlevels, level =0, commentMap = [], parents){
+  getCommentsForPost(postId, cb){
+    var self = this;
+    var getComments = function(postId, parentIds, allComments, commentIdx, cb){
+      var q;
+
+      if(parentIds){
+        if(parentIds.length === 0){
+          return cb(null, allComments);
+        }
+
+        q =  `SELECT id, parentId, userId, postId, text, createdAt, updatedAt
+        FROM comments c
+        WHERE postId = ${postId} AND parentId IN (${parentIds.join()})
+        ORDER BY c.createdAt`;
+      }
+      else{
+        q =  `SELECT id, parentId, userId, postId, text, createdAt, updatedAt
+        FROM comments c
+        WHERE postId = ${postId} AND parentId IS NULL
+        ORDER BY c.createdAt`;
+      }
+
+      console.log('q',q);
+      self.conn.query(q)
+        .then( res => {
+          var parentKeys = [];
+          res.forEach( comment => {
+            if(commentIdx[comment.parentId]){
+              commentIdx[comment.parentId].replies.push(comment);
+            }
+
+            parentKeys.push(comment.id);
+            comment.replies = [];
+            commentIdx[comment.id] = comment;
+            if(comment.parentId === null){
+              allComments.push(comment);
+            }
+            console.log('commentIdx',commentIdx)
+          });
+          getComments(postId, parentKeys, allComments, commentIdx, cb);
+        })
+    };
+
+    getComments(postId, null, [], {}, cb);
+  }
+
+  xgetCommentsForPost(postId, maxlevels, level =0, commentMap = [], parent){
     if(!postId || level<0){
       return Promise.reject('getCommentsForPost(postId, levels) params are required')
     }
@@ -172,11 +218,17 @@ class RedditAPI {
         WHERE parentId IS NULL`)
         .then(results => {
           var parents = results.map( row => row.id);
-          results.forEach( row => {
-            row.replies = [];
-            commentMap[row.id] = row;
+          return results.map( row => {
+            return {
+              id: row.id,
+              parentId: row.parentId,
+              userId: row.userId,
+              postId: row.postId,
+              text: row.text,
+              createdAt: row.createdAt,
+              replies: this.getCommentsForPost(postId, maxlevels, level+1, commentMap, row.id)
+            }
           });
-          return this.getCommentsForPost(postId, maxlevels, level+1, commentMap, parents);
         });
     }
     else if(level >= maxlevels ){
@@ -186,24 +238,30 @@ class RedditAPI {
       return commentMap;
     }
     else{
-      // console.log('parentIds', parents);
+      // console.log('Checking parentID: ', parent);
       // console.log('commentMap', commentMap);
-      commentMap.forEach( comment => {
-        this.conn.query(
-          `SELECT id, parentId, userId, postId, text, createdAt, updatedAt
-            FROM comments c
-            WHERE parentId = ?`, comment.id)
-          .then(results => {
-            var parents = results.map( row => row.parentId);
 
-            results.forEach( subComment => {
-              subComment.replies = [];
-              commentMap[comment.id].replies.push(subComment);
-            });
-            // console.log('commentMap[comment.id]',commentMap[comment.id]);
+      return this.conn.query(
+        `SELECT id, parentId, userId, postId, text, createdAt, updatedAt
+          FROM comments c
+          WHERE parentId = ?`, parent)
+        .then(results => {
+          // console.log('results: ', results);
+          return results.map( subComment => {
+            // console.log('subComment', JSON.stringify(subComment, undefined, 2));
+            return {
+              id: subComment.id,
+              parentId: subComment.parentId,
+              userId: subComment.userId,
+              postId: subComment.postId,
+              text: subComment.text,
+              createdAt: subComment.createdAt,
+              replies: this.getCommentsForPost(postId, maxlevels, level+1, commentMap, subComment.id)
+            }
           });
-      });
-      return this.getCommentsForPost(postId, maxlevels, level+1, commentMap, parents);
+          // console.log('test', JSON.stringify(test, undefined, 2));
+          // return this.getCommentsForPost(postId, maxlevels, level+1, commentMap, parents);
+        });
     }
   }
 }
