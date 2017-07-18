@@ -3,27 +3,34 @@ var mysql = require('promise-mysql');
 var RedditAPI = require('./reddit');
 
 function getSubreddits() {
-    return request(/* fill in the URL, it's always the same */)
+    return request('https://www.reddit.com/.json')
         .then(response => {
             // Parse response as JSON and store in variable called result
-            var response; // continue this line
+            var response = JSON.parse(response); // continue this line
 
             // Use .map to return a list of subreddit names (strings) only
-            return response.data.children.map(/* write a function */)
+            return response.data.children.map( r =>{
+             return r.data.subreddit;
+            });
         });
 }
 
 function getPostsForSubreddit(subredditName) {
-    return request(/* fill in the URL, it will be based on subredditName */)
+    return request('https://www.reddit.com/r/' + subredditName + ".json")
         .then(
             response => {
                 // Parse the response as JSON and store in variable called result
-                var response; // continue this line
+                var result = JSON.parse(response); // continue this line
 
-
-                return response.data.children
-                    .filter(/* write a function */) // Use .filter to remove self-posts
-                    .map(/* write a function */) // Use .map to return title/url/user objects only
+                return result.data.children
+                    .filter( row => !row.data.is_self)
+                    .map( row => {
+                      return {
+                        title: row.data.title,
+                        url: row.data.url,
+                        user: row.data.author
+                      }
+                    }); // Use .map to return title/url/user objects only
 
             }
         );
@@ -34,7 +41,7 @@ function crawl() {
     var connection = mysql.createPool({
         host     : 'localhost',
         user     : 'root',
-        password : '',
+        password : '123456',
         database: 'reddit',
         connectionLimit: 10
     });
@@ -98,3 +105,6 @@ function crawl() {
             });
         });
 }
+
+
+crawl();

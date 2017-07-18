@@ -40,11 +40,11 @@ var myReddit = new RedditAPI(connection);
 //         console.log(error.stack);
 //     });
 
-myReddit.getAllPosts()
-  .then( result => console.log('result: ', result))
-  .catch(error => {
-    console.error('oh shit, error: ', error.stack);
-  });
+// myReddit.getAllPosts()
+//   .then( result => console.log('result: ', result))
+//   .catch(error => {
+//     console.error('oh shit, error: ', error.stack);
+//   });
 
 // myReddit.createSubreddit({name: "kotk", description: "blah blah"})
 //   .then( result => console.log('result: ', result))
@@ -80,3 +80,21 @@ myReddit.getAllPosts()
 //   voteDirection: 1
 // }).then( result => console.log('result: ', result))
 // .catch( e => console.log('Error:', e));
+//
+// myReddit.createComment({
+//   text: "some  reply to comment",
+//   userId: 1,
+//   postId: 1,
+//   parentId: 3
+// })
+//   .then( result => console.log('result: ', result))
+//   .catch(error => {
+//     console.error('oh shit, error: ', error);
+//   });
+
+
+myReddit.getCommentsForPost(1, 2)
+  .then( result => console.log('result: ', result))
+  .catch(error => {
+    console.error('oh shit, error: ', error);
+  });
